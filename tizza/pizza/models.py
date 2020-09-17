@@ -24,11 +24,27 @@ class Pizzeria(models.Model):
 
 
 class Pizza(models.Model):
+    MEAT = 'MEA'
+    VEGETARIAN = 'VEGE'
+    VEGAN = 'VEGA'
+    NONE = 'None'
+    KIND_PIZZA_CHOICES = [
+        (MEAT, 'Meat'),
+        (VEGETARIAN, 'Vegetarian'),
+        (VEGAN, 'Vegan'),
+        (NONE, '')
+    ]
+
     title = models.CharField(max_length=120, unique=True)
     description = models.CharField(max_length=240)
     thumbnail_url = models.URLField()
     approved = models.BooleanField(default=False)
     creator = models.ForeignKey(Pizzeria, on_delete=models.CASCADE)
+    kin_of_pizza = models.CharField(
+        max_length=4,
+        choices=KIND_PIZZA_CHOICES,
+        default=NONE
+    )
 
     def __str__(self):
         return f'Pizza({self.id}, {self.title})'
