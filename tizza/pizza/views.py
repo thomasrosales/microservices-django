@@ -2,23 +2,35 @@ from django.shortcuts import render
 from django.http import HttpResponse
 from django.views import View
 from .models import Pizza, Like
+from django.utils.decorators import method_decorator
+from django.contrib.auth.decorators import login_required
+from ratelimit.decorators import ratelimit
 
 import random
 
 
 # Create your views here.
 
-
+@method_decorator(ratelimit(key='ip', rate='5/m', method='GET', block=True), name='get')
 class PizzaView(View):
 
-    def get(self, request, *args, **kwargs):
+    @method_decorator(login_required)
+    def get(self, request, id_pizza, *args, **kwargs):
         try:
-            pizza = Pizza.objects.get(id=kwargs['id_pizza'])
-            return HttpResponse({'id': pizza.id, 'title': pizza.title, 'description': pizza.description})
+            pizza = Pizza.objects.get(id=id_pizza)
+            return HttpResponse(content=pizza.to_json().values(), status=200)
         except Pizza.DoesNotExist:
             response = {'status': "error", 'message': 'pizza not found'}
             html = f'<html><body>{response}</body></html>'
             return HttpResponse(html, status=403)
+
+    @method_decorator(login_required)
+    def post(self, request, *args, **kwargs):
+        data = json.loads(request.body)
+        new_pizza = Pizza.objects.create(
+            title=data['title'], description=data['description'], creator=request.user)
+        new_pizza.save()
+        return HttpResponse(content=pizza.to_json(), status=201)
 
 
 class PizzaRandomView(View):
@@ -38,3 +50,15 @@ class PizzaRandomView(View):
             response = {'status': "error", 'message': 'pizza not found'}
             html = f'<html><body>{response}</body></html>'
             return HttpResponse(html, status=403)
+
+
+class LikeView(View):
+
+    def post(self, request, *args, **kwargs):
+        pass
+
+
+class UnLikeView(View):
+
+    def post(self, request, *args, **kwargs):
+        pass
