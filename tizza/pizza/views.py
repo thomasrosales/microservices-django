@@ -32,8 +32,8 @@ class PizzaView(View):
         new_pizza.save()
         return HttpResponse(content=pizza.to_json(), status=201)
 
-
-class PizzaRandomView(View):
+ @method_decorator(login_required)
+ class PizzaRandomView(View):
 
     def get(self, request, user_id, *args, **kwargs):
         try:
@@ -44,21 +44,33 @@ class PizzaRandomView(View):
                 pre_selected_pizzas.append(p.title)
             if len(pizzas) >= 15:
                 choosier_pizzas = random.sample(pre_selected_pizzas, 15)
-                print(choosier_pizzas)
             return HttpResponse()
         except Pizza.DoesNotExist:
             response = {'status': "error", 'message': 'pizza not found'}
             html = f'<html><body>{response}</body></html>'
             return HttpResponse(html, status=403)
 
-
+ @method_decorator(login_required)
 class LikeView(View):
 
-    def post(self, request, *args, **kwargs):
-        pass
+    def post(self, request, id_pizza, *args, **kwargs):
+        try:
+            user = request.user
+            pizza = Pizza.objects.get(id=id_pizza)
+            like = Like(user=user, pizza=pizza)
+            like.save()
+            return HttpResponse(status=201)
+        except (Pizza.DoesNotExist, User.DoesNotExist) as e
+        response = {'status': "error", 'message': e}
+        html = f'<html><body>{response}</body></html>'
+        return HttpResponse(html, status=403)
 
-
-class UnLikeView(View):
-
-    def post(self, request, *args, **kwargs):
-        pass
+    def delete(self, request, id_like, *args, **kwargs):
+        try:
+            like = Like.objects.get(id=id_like)
+            like.delete()
+            return HttpResponse(status=200)
+        except Pizza.DoesNotExist as e
+        response = {'status': "error", 'message': e}
+        html = f'<html><body>{response}</body></html>'
+        return HttpResponse(html, status=403)
