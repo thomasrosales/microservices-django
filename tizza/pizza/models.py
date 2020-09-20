@@ -64,6 +64,9 @@ class Like(models.Model):
     user = models.ForeignKey(UserProfile, on_delete=models.CASCADE)
     pizza = models.ForeignKey(Pizza, on_delete=models.CASCADE)
 
+    class Meta:
+        unique_together = ('user', 'pizza',)
+
     def __str__(self):
         return f'Like({self.id}, User({self.user.id}), Pizza({self.pizza.id}))'
 

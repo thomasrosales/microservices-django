@@ -5,6 +5,7 @@ from .models import Pizza, Like
 from django.utils.decorators import method_decorator
 from django.contrib.auth.decorators import login_required
 from ratelimit.decorators import ratelimit
+from user.models import UserProfile
 
 import random
 
@@ -32,9 +33,18 @@ class PizzaView(View):
         new_pizza.save()
         return HttpResponse(content=pizza.to_json(), status=201)
 
- @method_decorator(login_required)
- class PizzaRandomView(View):
 
+class GetTenPizzaView(View):
+    template_name = 'ten_pizzas.html'
+
+    def get(self, request):
+        pizzas = Pizza.objects.order_by('id')[:10]
+        return render(request, self.template_name, {'pizzas': pizzas})
+
+
+class PizzaRandomView(View):
+
+    @method_decorator(login_required)
     def get(self, request, user_id, *args, **kwargs):
         try:
             likes = [l.pizza.id for l in Like.objects.filter(user__id=user_id)]
@@ -44,33 +54,35 @@ class PizzaView(View):
                 pre_selected_pizzas.append(p.title)
             if len(pizzas) >= 15:
                 choosier_pizzas = random.sample(pre_selected_pizzas, 15)
-            return HttpResponse()
+            return HttpResponse(choosier_pizzas, status=200)
         except Pizza.DoesNotExist:
             response = {'status': "error", 'message': 'pizza not found'}
             html = f'<html><body>{response}</body></html>'
             return HttpResponse(html, status=403)
 
- @method_decorator(login_required)
+
 class LikeView(View):
 
+    @method_decorator(login_required)
     def post(self, request, id_pizza, *args, **kwargs):
         try:
-            user = request.user
+            user = UserProfile.objects.get(user=request.user)
             pizza = Pizza.objects.get(id=id_pizza)
             like = Like(user=user, pizza=pizza)
             like.save()
             return HttpResponse(status=201)
-        except (Pizza.DoesNotExist, User.DoesNotExist) as e
-        response = {'status': "error", 'message': e}
-        html = f'<html><body>{response}</body></html>'
-        return HttpResponse(html, status=403)
+        except (Pizza.DoesNotExist, UserProfile.DoesNotExist) as e:
+            response = {'status': "error", 'message': e}
+            html = f'<html><body>{response}</body></html>'
+            return HttpResponse(html, status=403)
 
-    def delete(self, request, id_like, *args, **kwargs):
+    @method_decorator(login_required)
+    def delete(self, request, id_pizza, *args, **kwargs):
         try:
-            like = Like.objects.get(id=id_like)
+            like = Like.objects.get(user=request.user, pizza__id=id_pizza)
             like.delete()
             return HttpResponse(status=200)
-        except Pizza.DoesNotExist as e
-        response = {'status': "error", 'message': e}
-        html = f'<html><body>{response}</body></html>'
-        return HttpResponse(html, status=403)
+        except Pizza.DoesNotExist as e:
+            response = {'status': "error", 'message': e}
+            html = f'<html><body>{response}</body></html>'
+            return HttpResponse(html, status=403)
